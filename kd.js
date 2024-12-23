@@ -159,38 +159,8 @@ async function getTracks(ext) {
     list: groups
   })
 }
-async function search(ext) {
-  try {
-    console.log('[kimivodjs] 开始处理搜索请求');
-    const jsonData = JSON.parse(data);
-    
-    const cards = jsonData.list.map((item, index) => {
-      console.log(`[kimivodjs] 处理第 ${index + 1} 个视频:`, {
-        id: item.vod_id,
-        name: item.vod_name
-      });
-      
-      return {
-        vod_id: item.vod_id,
-        vod_name: item.vod_name,
-        vod_pic: item.vod_pic,
-        vod_remarks: item.vod_remarks,
-        vod_year: item.vod_year,
-        vod_area: item.vod_area,
-        vod_actor: item.vod_actor,
-        vod_director: item.vod_director,
-        vod_content: item.vod_content
-      };
-    });
 
-    console.log(`[kimivodjs] 成功解析 ${cards.length} 个视频条目`);
-    return { list: cards };
-    
-  } catch (err) {
-    console.error('[kimivodjs] 解析失败:', err);
-    return { list: [] };
-  }
-}
+
 
 
 async function getPlayinfo(ext) {
@@ -236,6 +206,61 @@ async function getPlayinfo(ext) {
   }
 }
 
+
+async function search(ext) {
+  try {
+    const { text } = argsify(ext)
+    if (!text) {
+      return jsonify({
+        list: []
+      })
+    }
+
+    $print(`[kimivodjs] 开始搜索: ${text}`)
+    
+    const url = `https://cn.kimivod.com/search.php?searchword=${encodeURIComponent(text)}`
+    const { data } = await $fetch.get(url, {
+      headers
+    })
+
+    const $ = cheerio.load(data)
+    const list = []
+
+    // 修改解析逻辑
+    $('.myui-vodlist__media li').each((_, item) => {
+      const $item = $(item)
+      const $link = $item.find('.title a')
+      const $img = $item.find('.myui-vodlist__thumb')
+      const $remark = $item.find('.pic-text')
+      
+      if ($link.length) {
+        const href = $link.attr('href') || ''
+        const vod_id = href.split('/').filter(Boolean).pop() || ''
+        
+        list.push({
+          vod_id,
+          vod_name: $link.text().trim(),
+          vod_pic: $img.data('original') || '',
+          vod_remarks: $remark.text().trim(),
+          ext: {
+            url: href // 构建完整的详情页URL
+          }
+        })
+      }
+    })
+
+    $print(`[kimivodjs] 搜索到 ${list.length} 个结果`)
+    return jsonify({
+      list
+    })
+
+  } catch (err) {
+    $print(`[kimivodjs] 搜索失败: ${err}`)
+    return jsonify({
+      list: []
+    })
+  }
+}
 
 module.exports = {
     getConfig,
