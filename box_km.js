@@ -39,7 +39,7 @@ async function category(tid, pg, filter, extend) {
         let page = parseInt(pg) || 1;
         if (page == 0) page = 1;
         
-        // 构造URL，参考原代码的URL构造方式
+        // 构造URL，完全参考原代码的方式
         let url = '/';
         if (tid !== '0') {
             url = `/vod/show/id/${tid}.html`;
@@ -48,10 +48,10 @@ async function category(tid, pg, filter, extend) {
         console.log('分类URL:', url);
         
         const limit = 24;
-        const apiUrl = `${HOST}/index.php/ajax/data.html`;
+        const apiUrl = `/index.php/ajax/data.html`;  // 移除HOST，使用相对路径
         
-        // 从URL中提取分类ID，参考原代码的处理方式
-        const categoryId = tid === '0' ? 1 : tid;
+        // 从URL中提取分类ID
+        const categoryId = url.match(/id\/(\d+)/)?.[1] || 1;
         
         const params = {
             mid: 1,
@@ -62,20 +62,20 @@ async function category(tid, pg, filter, extend) {
 
         console.log('请求参数:', params);
 
-        const resp = await request(apiUrl, {
+        // 使用与原代码相同的请求方式
+        const resp = await request(HOST + apiUrl, {
             method: 'POST',
             headers: {
                 'User-Agent': MOBILE_UA,
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Referer': `${HOST}${url}`
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            data: params,
-            postType: 'form'  // 确保使用form格式提交
+            data: new URLSearchParams(params).toString()  // 确保参数正确编码
         });
 
         console.log('接口响应:', resp.content);
 
+        // 解析返回数据
         const json = JSON.parse(resp.content);
         const videos = [];
         
@@ -90,7 +90,9 @@ async function category(tid, pg, filter, extend) {
                     vod_area: item.vod_area || "",
                     vod_actor: item.vod_actor || "",
                     vod_director: item.vod_director || "",
-                    vod_content: item.vod_content || ""
+                    vod_content: item.vod_content || "",
+                    vod_play_from: "",
+                    vod_play_url: ""
                 });
             });
         }
