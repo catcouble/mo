@@ -1,0 +1,15 @@
+{
+  "spider": "https://example.com/custom_spider.jar",
+  "sites": [
+    {
+      "key": "kimivod",
+      "name": "KIMIVOD",
+      "type": 3,
+      "api": "https://你的服务器地址/kimivod.js",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "ext": ""
+    }
+  ]
+} 
