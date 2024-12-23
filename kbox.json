@@ -1,5 +1,4 @@
 {
-  "spider": "https://example.com/custom_spider.jar",
   "sites": [
     {
       "key": "kimivod",
