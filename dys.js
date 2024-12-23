@@ -232,6 +232,9 @@ async function getPlayinfo(ext) {
     // return jsonify({urls: []})
 }
 
+
+
+
 async function search(ext) {
   ext = argsify(ext)
   let cards = [];
@@ -244,29 +247,51 @@ async function search(ext) {
     })
   }
 
-  const url = appConfig.site + `/?s=${text}&post_type=post`
+  const url = appConfig.site + `/?s=${text}`
+  $print(`[ddysd] 搜索URL: ${url}`)
+  
   const { data } = await $fetch.get(url, {
     headers
   })
   
   const $ = cheerio.load(data)
   $('article.post').each((_, each) => {
-    const bgStyle = $(each).find('.post-box-image').attr('style') || ''
-    const imgMatch = bgStyle.match(/background-image: url\((.*?)\)/)
-    const imgUrl = imgMatch ? imgMatch[1].replace(/["']/g, '') : ''
+    const $article = $(each)
+    const $image = $article.find('.post-box-image')
+    
+    // 从 style 属性中提取图片URL
+    const style = $image.attr('style') || ''
+    const match = style.match(/background-image:\s*url\(['"]?(.*?)['"]?\)/)
+    const imgUrl = match ? match[1] : ''
+    
+    $print(`[ddysd] 标题: ${$article.find('h2.post-box-title').text().trim()}`)
+    $print(`[ddysd] 图片style: ${style}`)
+    $print(`[ddysd] 提取到的图片URL: ${imgUrl}`)
     
     cards.push({
-      vod_id: $(each).find('h2 > a').attr('href'),
-      vod_name: $(each).find('h2.post-title').text(),
+      vod_id: $article.find('h2 > a').attr('href'),
+      vod_name: $article.find('h2.post-box-title').text().trim(),
       vod_pic: imgUrl,
-      vod_remarks: $(each).find('div.entry-content > p').text(),
+      vod_remarks: $article.find('div.post-box-text > p').text().trim(),
       ext: {
-        url: $(each).find('h2 > a').attr('href'),
+        url: $article.find('h2 > a').attr('href'),
       },
     })
   })
 
+  $print(`[ddysd] 搜索到 ${cards.length} 个结果`)
   return jsonify({
-      list: cards,
+    list: cards,
   })
 }
+
+
+module.exports = {
+    getConfig,
+    getCards,
+    getTracks,
+    getPlayinfo,
+    search
+  }
+  
+  
