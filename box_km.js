@@ -11,7 +11,7 @@ const homeUrl = HOST;
 
 // 分类配置
 const cateList = [
-    {'n':'首页','v':''},
+    {'n':'首页','v':'0'},
     {'n':'电视剧','v':'2'},
     {'n':'电影','v':'1'},
     {'n':'动漫','v':'4'},
@@ -42,54 +42,73 @@ async function home(filter) {
  * 分类页面
  */
 async function category(tid, pg, filter, extend) {
-    let page = pg || 1;
-    if (page == 0) page = 1;
-    
-    const limit = 24;
-    const url = `${HOST}/index.php/ajax/data.html`;
-    
-    const params = {
-        mid: 1,
-        tid: tid || 1,
-        page: page,
-        limit: limit
-    };
+    try {
+        let page = pg || 1;
+        if (page == 0) page = 1;
+        
+        const limit = 24;
+        const url = `${HOST}/index.php/ajax/data.html`;
+        
+        // 修改请求参数
+        const params = new URLSearchParams({
+            mid: 1,
+            tid: tid || 1,
+            page: page,
+            limit: limit
+        }).toString();
 
-    const resp = await request(url, {
-        method: 'POST',
-        headers: {
-            'User-Agent': MOBILE_UA,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        data: params,
-        postType: 'form'
-    });
+        console.log('请求URL:', url);
+        console.log('请求参数:', params);
 
-    const json = JSON.parse(resp.content);
-    const videos = [];
-    
-    json.list.forEach(item => {
-        videos.push({
-            vod_id: item.vod_id,
-            vod_name: item.vod_name,
-            vod_pic: item.vod_pic,
-            vod_remarks: item.vod_remarks,
-            vod_year: item.vod_year,
-            vod_area: item.vod_area,
-            vod_actor: item.vod_actor,
-            vod_director: item.vod_director,
-            vod_content: item.vod_content
+        const resp = await request(url, {
+            method: 'POST',
+            headers: {
+                'User-Agent': MOBILE_UA,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': HOST
+            },
+            data: params
         });
-    });
 
-    return JSON.stringify({
-        page: page,
-        pagecount: Math.ceil(json.total/limit),
-        limit: limit,
-        total: json.total,
-        list: videos
-    });
+        console.log('接口响应:', resp.content);
+
+        const json = JSON.parse(resp.content);
+        const videos = [];
+        
+        if (json && json.list && Array.isArray(json.list)) {
+            json.list.forEach(item => {
+                videos.push({
+                    vod_id: item.vod_id,
+                    vod_name: item.vod_name,
+                    vod_pic: item.vod_pic,
+                    vod_remarks: item.vod_remarks || "",
+                    vod_year: item.vod_year || "",
+                    vod_area: item.vod_area || "",
+                    vod_actor: item.vod_actor || "",
+                    vod_director: item.vod_director || "",
+                    vod_content: item.vod_content || ""
+                });
+            });
+        }
+
+        return JSON.stringify({
+            page: parseInt(page),
+            pagecount: json.pagecount || 1,
+            limit: limit,
+            total: json.total || videos.length,
+            list: videos
+        });
+    } catch (e) {
+        console.log('分类页面错误:', e);
+        return JSON.stringify({
+            page: 1,
+            pagecount: 1,
+            limit: 24,
+            total: 0,
+            list: []
+        });
+    }
 }
 
 /**
