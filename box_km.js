@@ -1,13 +1,6 @@
-const MOBILE_UA = "Mozilla/5.0 (Linux; Android 11; M2007J3SC Build/RKQ1.200826.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/77.0.3865.120 MQQBrowser/6.2 TBS/045714 Mobile Safari/537.36";
+const MOBILE_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
-// 基础配置
 const HOST = 'https://kimivod.com';
-const siteKey = 'kimivod';
-const siteType = 0;
-const siteUrl = HOST;
-
-// 主页地址
-const homeUrl = HOST;
 
 // 分类配置
 const cateList = [
@@ -18,9 +11,6 @@ const cateList = [
     {'n':'综艺','v':'3'},
     {'n':'短剧','v':'5'}
 ];
-
-// 筛选配置
-const filterObj = {};
 
 /**
  * 主页函数
@@ -46,32 +36,33 @@ async function category(tid, pg, filter, extend) {
         let page = pg || 1;
         if (page == 0) page = 1;
         
-        const limit = 24;
-        const url = `${HOST}/index.php/ajax/data.html`;
+        // 构造分类URL
+        let url = '/';
+        if (tid !== '0') {
+            url = `/vod/show/id/${tid}.html`;
+        }
         
-        // 修改请求参数
-        const params = new URLSearchParams({
+        const limit = 24;
+        const apiUrl = `${HOST}/index.php/ajax/data.html`;
+        
+        const params = {
             mid: 1,
             tid: tid || 1,
             page: page,
             limit: limit
-        }).toString();
+        };
 
-        console.log('请求URL:', url);
-        console.log('请求参数:', params);
-
-        const resp = await request(url, {
+        const resp = await request(apiUrl, {
             method: 'POST',
             headers: {
                 'User-Agent': MOBILE_UA,
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Referer': HOST
+                'Referer': `${HOST}${url}`
             },
-            data: params
+            data: params,
+            postType: 'form'
         });
-
-        console.log('接口响应:', resp.content);
 
         const json = JSON.parse(resp.content);
         const videos = [];
@@ -94,7 +85,7 @@ async function category(tid, pg, filter, extend) {
 
         return JSON.stringify({
             page: parseInt(page),
-            pagecount: json.pagecount || 1,
+            pagecount: Math.ceil(json.total/limit),
             limit: limit,
             total: json.total || videos.length,
             list: videos
@@ -115,105 +106,134 @@ async function category(tid, pg, filter, extend) {
  * 详情页面
  */
 async function detail(id) {
-    const url = `${HOST}/index.php/vod/detail/id/${id}.html`;
-    const resp = await request(url, {
-        headers: {
-            'User-Agent': MOBILE_UA
-        }
-    });
-
-    const $ = load(resp.content);
-    const vod = {
-        vod_id: id,
-        vod_name: $('.title').text().trim(),
-        vod_pic: $('.lazyload').attr('data-original'),
-        vod_remarks: $('.pic-text').text().trim(),
-        vod_content: $('.content').text().trim()
-    };
-
-    const playMap = {};
-    $('.playlist').each((index, element) => {
-        const sourceName = $(element).find('.title').text().trim();
-        const playList = [];
-        $(element).find('a').each((i, el) => {
-            const name = $(el).text().trim();
-            const playUrl = $(el).attr('href');
-            playList.push(`${name}$${playUrl}`);
+    try {
+        const url = `${HOST}/index.php/vod/detail/id/${id}.html`;
+        const resp = await request(url, {
+            headers: {
+                'User-Agent': MOBILE_UA,
+                'Referer': HOST
+            }
         });
-        playMap[sourceName] = playList.join('#');
-    });
 
-    vod.vod_play_from = Object.keys(playMap).join('$$$');
-    vod.vod_play_url = Object.values(playMap).join('$$$');
+        const $ = load(resp.content);
+        
+        // 获取播放列表
+        const playMap = {};
+        $('.playno').each((_, element) => {
+            const $element = $(element);
+            const sourceName = $('.tabs a.active span.max').text().trim();
+            const playList = [];
+            
+            $element.find('a').each((_, item) => {
+                const $item = $(item);
+                const name = $item.text().trim();
+                const playUrl = $item.attr('href');
+                playList.push(`${name}$${playUrl}`);
+            });
+            
+            if (playList.length > 0) {
+                playMap[sourceName] = playList.join('#');
+            }
+        });
 
-    return JSON.stringify({
-        list: [vod]
-    });
+        const vod = {
+            vod_id: id,
+            vod_name: $('.title').text().trim(),
+            vod_pic: $('.lazyload').attr('data-original'),
+            vod_remarks: $('.pic-text').text().trim(),
+            vod_content: $('.content').text().trim(),
+            vod_play_from: Object.keys(playMap).join('$$$'),
+            vod_play_url: Object.values(playMap).join('$$$')
+        };
+
+        return JSON.stringify({
+            list: [vod]
+        });
+    } catch (e) {
+        console.log('详情页面错误:', e);
+        return JSON.stringify({
+            list: []
+        });
+    }
 }
 
 /**
  * 搜索功能
  */
-async function search(wd, quick) {
-    const url = `${HOST}/search.php?searchword=${encodeURIComponent(wd)}`;
-    const resp = await request(url, {
-        headers: {
-            'User-Agent': MOBILE_UA
-        }
-    });
+async function search(wd) {
+    try {
+        const url = `${HOST}/search.php?searchword=${encodeURIComponent(wd)}`;
+        const resp = await request(url, {
+            headers: {
+                'User-Agent': MOBILE_UA,
+                'Referer': HOST
+            }
+        });
 
-    const $ = load(resp.content);
-    const videos = [];
-    
-    $('.myui-vodlist__media li').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('.title a');
-        const $img = $item.find('.myui-vodlist__thumb');
-        const $remark = $item.find('.pic-text');
+        const $ = load(resp.content);
+        const videos = [];
         
-        if ($link.length) {
-            const href = $link.attr('href') || '';
-            const vod_id = href.split('/').pop().replace('.html', '');
+        $('.myui-vodlist__media li').each((_, element) => {
+            const $item = $(element);
+            const $link = $item.find('.title a');
+            const $img = $item.find('.myui-vodlist__thumb');
+            const $remark = $item.find('.pic-text');
             
-            videos.push({
-                vod_id: vod_id,
-                vod_name: $link.text().trim(),
-                vod_pic: $img.data('original') || '',
-                vod_remarks: $remark.text().trim()
-            });
-        }
-    });
+            if ($link.length) {
+                const href = $link.attr('href') || '';
+                const vod_id = href.split('/').pop().replace('.html', '');
+                
+                videos.push({
+                    vod_id: vod_id,
+                    vod_name: $link.text().trim(),
+                    vod_pic: $img.data('original') || '',
+                    vod_remarks: $remark.text().trim()
+                });
+            }
+        });
 
-    return JSON.stringify({
-        list: videos
-    });
+        return JSON.stringify({
+            list: videos
+        });
+    } catch (e) {
+        console.log('搜索错误:', e);
+        return JSON.stringify({
+            list: []
+        });
+    }
 }
 
 /**
  * 播放解析
  */
 async function play(flag, id, flags) {
-    const url = `${HOST}${id}`;
-    const resp = await request(url, {
-        headers: {
-            'User-Agent': MOBILE_UA
-        }
-    });
+    try {
+        const url = `${HOST}${id}`;
+        const resp = await request(url, {
+            headers: {
+                'User-Agent': MOBILE_UA,
+                'Referer': HOST
+            }
+        });
 
-    const $ = load(resp.content);
-    const script = $('script:contains("file:")').html();
-    const playUrl = script.match(/file:"([^"]+)"/)[1];
+        const $ = load(resp.content);
+        const script = $('script:contains("file:")').html();
+        const playUrl = script.match(/file:"([^"]+)"/)[1];
 
-    return JSON.stringify({
-        parse: 0,
-        url: playUrl
-    });
+        return JSON.stringify({
+            parse: 0,
+            url: playUrl
+        });
+    } catch (e) {
+        console.log('播放解析错误:', e);
+        return JSON.stringify({
+            parse: 0,
+            url: ''
+        });
+    }
 }
 
 export default {
-    init: async (cfg) => {
-        // 初始化配置
-    },
     home: home,
     category: category,
     detail: detail,
