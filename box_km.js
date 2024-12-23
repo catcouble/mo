@@ -16,16 +16,19 @@ const cateList = [
  * 主页函数
  */
 async function home(filter) {
-    const classes = [];
-    cateList.forEach(item => {
-        classes.push({
-            type_id: item.v,
-            type_name: item.n
+    try {
+        return JSON.stringify({
+            class: cateList.map(it => ({
+                type_id: it.v,
+                type_name: it.n
+            }))
         });
-    });
-    return JSON.stringify({
-        class: classes
-    });
+    } catch (e) {
+        console.log('首页错误:', e);
+        return JSON.stringify({
+            class: []
+        });
+    }
 }
 
 /**
@@ -33,24 +36,31 @@ async function home(filter) {
  */
 async function category(tid, pg, filter, extend) {
     try {
-        let page = pg || 1;
+        let page = parseInt(pg) || 1;
         if (page == 0) page = 1;
         
-        // 构造分类URL
+        // 构造URL，参考原代码的URL构造方式
         let url = '/';
         if (tid !== '0') {
             url = `/vod/show/id/${tid}.html`;
         }
         
+        console.log('分类URL:', url);
+        
         const limit = 24;
         const apiUrl = `${HOST}/index.php/ajax/data.html`;
         
+        // 从URL中提取分类ID，参考原代码的处理方式
+        const categoryId = tid === '0' ? 1 : tid;
+        
         const params = {
             mid: 1,
-            tid: tid || 1,
+            tid: categoryId,
             page: page,
             limit: limit
         };
+
+        console.log('请求参数:', params);
 
         const resp = await request(apiUrl, {
             method: 'POST',
@@ -61,8 +71,10 @@ async function category(tid, pg, filter, extend) {
                 'Referer': `${HOST}${url}`
             },
             data: params,
-            postType: 'form'
+            postType: 'form'  // 确保使用form格式提交
         });
+
+        console.log('接口响应:', resp.content);
 
         const json = JSON.parse(resp.content);
         const videos = [];
@@ -84,7 +96,7 @@ async function category(tid, pg, filter, extend) {
         }
 
         return JSON.stringify({
-            page: parseInt(page),
+            page: page,
             pagecount: Math.ceil(json.total/limit),
             limit: limit,
             total: json.total || videos.length,
@@ -92,6 +104,8 @@ async function category(tid, pg, filter, extend) {
         });
     } catch (e) {
         console.log('分类页面错误:', e);
+        console.log('错误详情:', e.message);
+        console.log('错误堆栈:', e.stack);
         return JSON.stringify({
             page: 1,
             pagecount: 1,
