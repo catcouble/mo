@@ -17,27 +17,27 @@ const appConfig = {
   }, {
     name: '电视剧',
     ext: {
-      url: '/vod/show/id/2.html'
+      url: '/vod/show/id/1.html'
     },
   }, {
     name: '电影',
     ext: {
-      url: '/vod/show/id/1.html'
+      url: '/vod/show/id/2.html'
     },
   }, {
     name: '动漫',
     ext: {
-      url: '/vod/show/id/4.html'
+      url: '/vod/show/id/3.html'
     },
   }, {
     name: '综艺',
     ext: {
-      url: '/vod/show/id/3.html'
+      url: '/vod/show/id/4.html'
     },
   }, {
     name: '短剧',
     ext: {
-      url: '/vod/show/id/5.html'
+      url: '/vod/show/id/39.html'
     },
   }]
 }
