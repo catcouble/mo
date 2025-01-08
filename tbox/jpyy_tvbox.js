@@ -21,124 +21,6 @@ var rule = {
     搜索:'*'
 };
 
-async function init(cfg) {
-    rule = Object.assign(rule, cfg);
-    return JSON.stringify({
-        class: rule.class_name.split('&').map((name, index) => ({
-            type_name: name,
-            type_id: rule.class_url.split('&')[index]
-        }))
-    });
-}
-
-async function home(filter) {
-    return JSON.stringify({
-        class: rule.class_name.split('&').map((name, index) => ({
-            type_name: name,
-            type_id: rule.class_url.split('&')[index]
-        }))
-    });
-}
-
-async function category(tid, pg, filter, extend) {
-    const path = rule.url.replace('fyclass', tid).replace('fypage', pg);
-    const url = rule.host + path;
-    const headers = getHeader(url);
-    const response = await fetch(url, { headers });
-    const json = await response.json();
-    const data = json.data;
-    
-    let videos = [];
-    for (const item of data.list) {
-        if (item.vodName.includes('预告')) continue;
-        videos.push({
-            vod_id: item.vodId.toString(),
-            vod_name: item.vodName,
-            vod_pic: item.vodPic,
-            vod_remarks: item.vodRemarks || item.vodVersion || '',
-        });
-    }
-    return JSON.stringify({
-        page: parseInt(pg),
-        pagecount: Math.ceil(data.total / 30),
-        limit: 30,
-        total: data.total,
-        list: videos,
-    });
-}
-
-async function detail(id) {
-    const path = '/api/mw-movie/anonymous/video/detail?id=' + id;
-    const url = rule.host + path;
-    const headers = getHeader(url);
-    const response = await fetch(url, { headers });
-    const json = await response.json();
-    const data = json.data;
-    
-    let vod = {
-        vod_id: data.vodId,
-        vod_name: data.vodName,
-        vod_pic: data.vodPic,
-        type_name: data.typeName,
-        vod_year: data.vodYear,
-        vod_area: data.vodArea,
-        vod_remarks: data.vodRemarks,
-        vod_actor: data.vodActor,
-        vod_director: data.vodDirector,
-        vod_content: data.vodContent,
-        vod_play_from: "播放源",
-        vod_play_url: data.episodeList.map(item => item.name + "$" + data.vodId + "_" + item.nid).join("#"),
-    }
-    
-    return JSON.stringify({
-        list: [vod]
-    });
-}
-
-async function play(flag, id, flags) {
-    const [vodId, nid] = id.split('_')
-    const path = `/api/mw-movie/anonymous/v1/video/episode/url?id=${vodId}&nid=${nid}`;
-    const url = rule.host + path;
-    const headers = getHeader(url);
-    const response = await fetch(url, { headers });
-    const json = await response.json();
-    
-    return JSON.stringify({
-        parse: 0,
-        url: json.data.playUrl,
-        header: {
-            'User-Agent': headers['User-Agent'],
-            Referer: url,
-        }
-    });
-}
-
-async function search(wd, quick) {
-    const page = 1
-    const path = `/api/mw-movie/anonymous/video/searchByWordPageable?keyword=${encodeURIComponent(wd)}&pageNum=${page}&pageSize=12&type=false`
-    const url = rule.host + path
-    const signStr = `searchByWordPageable?keyword=${wd}&pageNum=${page}&pageSize=12&type=false`
-    const headers = getHeader(signStr)
-
-    const response = await fetch(url, { headers });
-    const json = await response.json();
-    const data = json.data;
-
-    let videos = []
-    for (const item of data.list) {
-        if (item.vodName.includes('预告')) continue
-        videos.push({
-            vod_id: item.vodId.toString(),
-            vod_name: item.vodName,
-            vod_pic: item.vodPic,
-            vod_remarks: item.vodRemarks || item.vodVersion || '',
-        })
-    }
-    return JSON.stringify({
-        list: videos
-    })
-}
-
 function getHeader(url) {
     const signKey = 'cb808529bae6b6be45ecfab29a4889bc'
     const dataStr = url.split('?')[1]
@@ -146,17 +28,177 @@ function getHeader(url) {
     const signStr = dataStr + `&key=${signKey}` + `&t=${t}`
 
     function getUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (e) => ('x' === e ? (16 * Math.random()) | 0 : 'r&0x3' | '0x8').toString(16))
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(e) {
+            return ('x' === e ? (16 * Math.random()) | 0 : 'r&0x3' | '0x8').toString(16)
+        })
     }
 
     return {
         'User-Agent': rule.headers['User-Agent'],
         deviceId: getUUID(),
         t: t.toString(),
-        sign: md5(signStr),
+        sign: CryptoJS.SHA1(CryptoJS.MD5(signStr).toString()).toString()
     }
 }
 
-function md5(str) {
-    return CryptoJS.MD5(str).toString()
+function init(cfg) {
+    if (cfg.headers) {
+        rule.headers = cfg.headers;
+    }
+    return JSON.stringify({
+        class: rule.class_name.split('&').map(function(name, index) {
+            return {
+                type_name: name,
+                type_id: rule.class_url.split('&')[index]
+            }
+        })
+    });
+}
+
+function home(filter) {
+    return JSON.stringify({
+        class: rule.class_name.split('&').map(function(name, index) {
+            return {
+                type_name: name,
+                type_id: rule.class_url.split('&')[index]
+            }
+        })
+    });
+}
+
+function category(tid, pg, filter, extend) {
+    var path = rule.url.replace('fyclass', tid).replace('fypage', pg);
+    var url = rule.host + path;
+    var headers = getHeader(url);
+    
+    var response = fetch(url, {
+        headers: headers,
+        timeout: 5000
+    });
+    var data = JSON.parse(response.content || '{}');
+    if (!data.data || !data.data.list) {
+        return JSON.stringify({
+            list: []
+        });
+    }
+    
+    var videos = [];
+    data.data.list.forEach(function(item) {
+        if (item.vodName.includes('预告')) return;
+        videos.push({
+            vod_id: item.vodId.toString(),
+            vod_name: item.vodName,
+            vod_pic: item.vodPic,
+            vod_remarks: item.vodRemarks || item.vodVersion || ''
+        });
+    });
+    
+    return JSON.stringify({
+        page: parseInt(pg),
+        pagecount: Math.ceil(data.data.total / 30),
+        limit: 30,
+        total: data.data.total,
+        list: videos
+    });
+}
+
+function detail(id) {
+    var path = '/api/mw-movie/anonymous/video/detail?id=' + id;
+    var url = rule.host + path;
+    var headers = getHeader(url);
+    
+    var response = fetch(url, {
+        headers: headers,
+        timeout: 5000
+    });
+    var data = JSON.parse(response.content || '{}');
+    if (!data.data) {
+        return JSON.stringify({
+            list: []
+        });
+    }
+    
+    var vod = {
+        vod_id: data.data.vodId,
+        vod_name: data.data.vodName,
+        vod_pic: data.data.vodPic,
+        type_name: data.data.typeName,
+        vod_year: data.data.vodYear,
+        vod_area: data.data.vodArea,
+        vod_remarks: data.data.vodRemarks,
+        vod_actor: data.data.vodActor,
+        vod_director: data.data.vodDirector,
+        vod_content: data.data.vodContent,
+        vod_play_from: "播放源",
+        vod_play_url: data.data.episodeList.map(function(item) {
+            return item.name + "$" + data.data.vodId + "_" + item.nid
+        }).join("#")
+    };
+    
+    return JSON.stringify({
+        list: [vod]
+    });
+}
+
+function play(flag, id, flags) {
+    var ids = id.split('_');
+    var vodId = ids[0], nid = ids[1];
+    var path = '/api/mw-movie/anonymous/v1/video/episode/url?id=' + vodId + '&nid=' + nid;
+    var url = rule.host + path;
+    var headers = getHeader(url);
+    
+    var response = fetch(url, {
+        headers: headers,
+        timeout: 5000
+    });
+    var data = JSON.parse(response.content || '{}');
+    if (!data.data) {
+        return JSON.stringify({
+            parse: 0,
+            url: ''
+        });
+    }
+    
+    return JSON.stringify({
+        parse: 0,
+        url: data.data.playUrl,
+        header: {
+            'User-Agent': headers['User-Agent'],
+            'Referer': url
+        }
+    });
+}
+
+function search(wd, quick) {
+    var page = 1;
+    var path = '/api/mw-movie/anonymous/video/searchByWordPageable?keyword=' + encodeURIComponent(wd) + '&pageNum=' + page + '&pageSize=12&type=false';
+    var url = rule.host + path;
+    var signStr = 'searchByWordPageable?keyword=' + wd + '&pageNum=' + page + '&pageSize=12&type=false';
+    var headers = getHeader(signStr);
+    
+    var response = fetch(url, {
+        headers: headers,
+        timeout: 5000
+    });
+    var data = JSON.parse(response.content || '{}');
+    if (!data.data || !data.data.list) {
+        return JSON.stringify({
+            list: []
+        });
+    }
+    
+    var videos = [];
+    data.data.list.forEach(function(item) {
+        if (item.vodName.includes('预告')) return;
+        videos.push({
+            vod_id: item.vodId.toString(),
+            vod_name: item.vodName,
+            vod_pic: item.vodPic,
+            vod_remarks: item.vodRemarks || item.vodVersion || ''
+        });
+    });
+    
+    return JSON.stringify({
+        list: videos
+    });
 }
