@@ -17,41 +17,12 @@ var rule = {
     limit:6,
     推荐:'',
     一级:'json:data.list;vodName;vodPic;vodRemarks;vodId',
-    二级:{
-        "title":"vodName",
-        "img":"vodPic",
-        "desc":"vodRemarks",
-        "content":"vodContent",
-        "director":"vodDirector",
-        "actor":"vodActor",
-        "area":"vodArea",
-        "year":"vodYear",
-        "tabs":"js:TABS=['播放源']",
-        "lists":"js:let list1=[];let d=[];d=data.data;let vod=d.episodeList;vod.forEach(function(it){list1.push(it.name+'$'+d.vodId+'_'+it.nid)});LISTS=[list1];"
-    },
-    搜索:'*',
-}
+    二级:'*',
+    搜索:'*'
+};
 
-function getHeader(url) {
-    const signKey = 'cb808529bae6b6be45ecfab29a4889bc'
-    const dataStr = url.split('?')[1]
-    const t = Date.now()
-    const signStr = dataStr + `&key=${signKey}` + `&t=${t}`
-
-    function getUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (e) => ('x' === e ? (16 * Math.random()) | 0 : 'r&0x3' | '0x8').toString(16))
-    }
-
-    return {
-        'User-Agent': rule.headers['User-Agent'],
-        deviceId: getUUID(),
-        t: t.toString(),
-        sign: md5(signStr),
-    }
-}
-
-function init(cfg) {
-    rule.headers.deviceId = getUUID()
+async function init(cfg) {
+    rule = Object.assign(rule, cfg);
     return JSON.stringify({
         class: rule.class_name.split('&').map((name, index) => ({
             type_name: name,
@@ -60,7 +31,7 @@ function init(cfg) {
     });
 }
 
-function home(filter) {
+async function home(filter) {
     return JSON.stringify({
         class: rule.class_name.split('&').map((name, index) => ({
             type_name: name,
@@ -69,12 +40,13 @@ function home(filter) {
     });
 }
 
-function category(tid, pg, filter, extend) {
+async function category(tid, pg, filter, extend) {
     const path = rule.url.replace('fyclass', tid).replace('fypage', pg);
     const url = rule.host + path;
     const headers = getHeader(url);
-    const response = request(url, { headers });
-    const data = JSON.parse(response.content).data;
+    const response = await fetch(url, { headers });
+    const json = await response.json();
+    const data = json.data;
     
     let videos = [];
     for (const item of data.list) {
@@ -95,12 +67,13 @@ function category(tid, pg, filter, extend) {
     });
 }
 
-function detail(id) {
+async function detail(id) {
     const path = '/api/mw-movie/anonymous/video/detail?id=' + id;
     const url = rule.host + path;
     const headers = getHeader(url);
-    const response = request(url, { headers });
-    const data = JSON.parse(response.content).data;
+    const response = await fetch(url, { headers });
+    const json = await response.json();
+    const data = json.data;
     
     let vod = {
         vod_id: data.vodId,
@@ -122,17 +95,17 @@ function detail(id) {
     });
 }
 
-function play(flag, id, flags) {
+async function play(flag, id, flags) {
     const [vodId, nid] = id.split('_')
     const path = `/api/mw-movie/anonymous/v1/video/episode/url?id=${vodId}&nid=${nid}`;
     const url = rule.host + path;
     const headers = getHeader(url);
-    const response = request(url, { headers });
-    const data = JSON.parse(response.content);
+    const response = await fetch(url, { headers });
+    const json = await response.json();
     
     return JSON.stringify({
         parse: 0,
-        url: data.data.playUrl,
+        url: json.data.playUrl,
         header: {
             'User-Agent': headers['User-Agent'],
             Referer: url,
@@ -140,15 +113,16 @@ function play(flag, id, flags) {
     });
 }
 
-function search(key) {
+async function search(wd, quick) {
     const page = 1
-    const path = `/api/mw-movie/anonymous/video/searchByWordPageable?keyword=${encodeURIComponent(key)}&pageNum=${page}&pageSize=12&type=false`
+    const path = `/api/mw-movie/anonymous/video/searchByWordPageable?keyword=${encodeURIComponent(wd)}&pageNum=${page}&pageSize=12&type=false`
     const url = rule.host + path
-    const signStr = `searchByWordPageable?keyword=${key}&pageNum=${page}&pageSize=12&type=false`
+    const signStr = `searchByWordPageable?keyword=${wd}&pageNum=${page}&pageSize=12&type=false`
     const headers = getHeader(signStr)
 
-    const response = request(url, { headers });
-    const data = JSON.parse(response.content).data;
+    const response = await fetch(url, { headers });
+    const json = await response.json();
+    const data = json.data;
 
     let videos = []
     for (const item of data.list) {
@@ -165,24 +139,24 @@ function search(key) {
     })
 }
 
-function request(url, options) {
-    let res = {};
-    try {
-        res = fetch(url, {
-            method: 'GET',
-            headers: options.headers
-        });
-        res.content = res.text();
-    } catch(e) {
-        console.log('request error: ' + e.message);
-        res.content = '{}';
+function getHeader(url) {
+    const signKey = 'cb808529bae6b6be45ecfab29a4889bc'
+    const dataStr = url.split('?')[1]
+    const t = Date.now()
+    const signStr = dataStr + `&key=${signKey}` + `&t=${t}`
+
+    function getUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (e) => ('x' === e ? (16 * Math.random()) | 0 : 'r&0x3' | '0x8').toString(16))
     }
-    return res;
+
+    return {
+        'User-Agent': rule.headers['User-Agent'],
+        deviceId: getUUID(),
+        t: t.toString(),
+        sign: md5(signStr),
+    }
 }
 
 function md5(str) {
-    const crypto = require('crypto');
-    const hash = crypto.createHash('md5');
-    hash.update(str);
-    return hash.digest('hex');
+    return CryptoJS.MD5(str).toString()
 }
