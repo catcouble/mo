@@ -1,22 +1,16 @@
 {
   "sites": [
     {
-      "name": "素白白影視",
+      "name": "kimivod",
       "type": 3,
-      "api": "csp_subaibai",
-      "ext": "https://ghp.xptvhelper.link/https://raw.githubusercontent.com/Yswag/xptv-extensions/main/js/subaibai.js"
+      "api": "csp_kimivod",
+      "ext": "https://raw.githubusercontent.com/catcouble/mo/refs/heads/main/kd.js"
     },
     {
-      "name": "兩個BT",
+      "name": "金牌金牌",
       "type": 3,
-      "api": "csp_bttwo",
-      "ext": "https://ghp.xptvhelper.link/https://raw.githubusercontent.com/Yswag/xptv-extensions/main/js/bttwo.js"
-    },
-    {
-      "name": "NO視頻",
-      "type": 3,
-      "api": "csp_novipnoad",
-      "ext": "https://ghp.xptvhelper.link/https://raw.githubusercontent.com/Yswag/xptv-extensions/main/js/novipnoad.js"
+      "api": "csp_jpysjpai",
+      "ext": "https://raw.githubusercontent.com/catcouble/mo/refs/heads/main/jpys.js"
     }
   ]
 }
