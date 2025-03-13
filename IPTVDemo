@@ -1,0 +1,7 @@
+#EXTM3U
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=1",Video1
+http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=2",Video2
+http://185.33.21.112/hls/stream.m3u8
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=3",Video3
+http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
