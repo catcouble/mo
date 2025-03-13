@@ -1,7 +1,7 @@
 #EXTM3U
-#EXTINF:-1 tvg-logo="https://fastly.picsum.photos/id/431/5000/3334.jpg?hmac=T2rL_gBDyJYpcr1Xm8Kv7L6bhwvmZS8nKT5w3ok58kA",Video1
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=1",Video1
 http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4
-#EXTINF:-1 tvg-logo="https://fastly.picsum.photos/id/519/4761/3174.jpg?hmac=WOR8MiytXU9GeApL-ZVRtCFvUWTcRpO7ulB4Ytce2bk",Video2
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=2",Video2
 http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8
-#EXTINF:-1 tvg-logo="https://fastly.picsum.photos/id/76/4912/3264.jpg?hmac=VkFcSa2Rbv0R0ndYnz_FAmw02ON1pPVjuF_iVKbiiV8",Video3
+#EXTINF:-1 tvg-logo="https://picsum.photos/400/600?random=3",Video3
 http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4
