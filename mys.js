@@ -1,3 +1,4 @@
+//const cheerio = require('cheerio');
 const cheerio = createCheerio()
 //const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
@@ -58,7 +59,7 @@ async function getCards(ext) {
   $('.module-item').each((_, item) => {
     const $item = $(item)
     const $link = $item.find('.v-item')
-    const $img = $item.find('.v-item-cover img.lazy')
+    const $img = $item.find('.v-item-cover img.lazy').eq(1)
     const $remark = $item.find('.v-item-bottom span')
     const $score = $item.find('.v-item-top-left span')
     
@@ -69,7 +70,7 @@ async function getCards(ext) {
       cards.push({
         vod_id,
         vod_name: $item.find('.v-item-title').eq(1).text().trim(),
-        vod_pic: $img.data('original') || '',
+        vod_pic: "https://vres.wbadl.cn" + $img.attr('data-original') || '',
         vod_remarks: $remark.text().trim(),
         vod_score: $score.text().trim(),
         ext: {
@@ -85,57 +86,50 @@ async function getCards(ext) {
 
 async function getTracks(ext) {
   try {
-//    const response = await fetch(ext.url, {
-//        headers: headers
-//    });
-//    const $ = cheerio.load(await response.text());
-     
     const { data } = await $fetch.get(ext.url, {
-        headers
+      headers
     })
     const $ = cheerio.load(data)
-      
-    const groups = [];
+    const groups = []
 
     // 找到播放线路列表
-    const sourceItems = $('.source-swiper-slide .source-item');
-    sourceItems.each((i, el) => {
-      const $el = $(el);
-      const title = $el.find('.source-item-label').text().trim();
-      const episodeCount = parseInt($el.find('.source-item-num').text());
+    $('.source-swiper-slide').each((i, el) => {
+      const $el = $(el)
+      const title = $el.find('.source-item-label').text().trim()
+      const episodeCount = parseInt($el.find('.source-item-num').text())
       
       // 找到对应的集数列表
-      const episodeList = $('.episode-list');
-      const tracks = [];
+      const episodeList = $('.episode-list').eq(i)
+      const tracks = []
       
       episodeList.find('.episode-item').each((j, epEl) => {
-        const $epEl = $(epEl);
-          tracks.push({
+        const $epEl = $(epEl)
+        tracks.push({
           name: $epEl.text().trim(),
-//          url: $epEl.attr('href')
-              ext: {
-                             url: $epEl.attr('href')
-                          }
-        });
-      });
+          ext: {
+            url: $epEl.attr('href')
+          }
+        })
+      })
 
       if (tracks.length > 0) {
-          groups.push({
+        groups.push({
           title,
           tracks
-        });
+        })
       }
-    });
-//      $print(`[kikjs] 开始获取播放tracks: ${JSON.stringify(tracks, null, 2)}`);
-//      $print(`[kikjs] getTracks tracks，数量: ${tracks.length}`);
-//    return tracks;
-      $print(`[kikjs] 获取到 ${groups.length} 个播放列表组`)
-       return jsonify({
-         list: groups
-       })
+    })
+      $print(`[kikjs] 开始获取播放tracks: ${JSON.stringify(groups, null, 2)}`);
+
+    $print(`[kikjs] 获取到 ${groups.length} 个播放列表组`)
+    return jsonify({
+      list: groups
+    })
   } catch (error) {
-    console.error('获取播放线路失败:', error);
-    return [];
+    console.error('获取播放线路失败:', error)
+    return jsonify({
+      list: []
+    })
   }
 }
 
