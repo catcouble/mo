@@ -1,4 +1,4 @@
-// const cheerio = require('cheerio');
+// const cheerio = require('cheerio'); 
 const cheerio = createCheerio()
 //const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
