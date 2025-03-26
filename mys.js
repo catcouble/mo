@@ -85,10 +85,16 @@ async function getCards(ext) {
 
 async function getTracks(ext) {
   try {
-    const response = await $fetch(ext.url, {
-        headers: headers
-    });
-    const $ = cheerio.load(await response.text());
+//    const response = await fetch(ext.url, {
+//        headers: headers
+//    });
+//    const $ = cheerio.load(await response.text());
+     
+    const { data } = await $fetch.get(ext.url, {
+        headers
+    })
+    const $ = cheerio.load(data)
+      
     const groups = [];
 
     // 找到播放线路列表
