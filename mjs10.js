@@ -178,7 +178,7 @@ async function search(ext) {
       list.push({
         vod_id,
         vod_name: $title.text().trim(),
-        vod_pic: $img.attr('data-original') || '',
+        vod_pic: "https://vres.wbadl.cn" + $img.attr('data-original') || '',
         vod_remarks: tags.join('/'),
         vod_score: $actors.text().trim(),
         vod_content: $desc.text().trim(),
