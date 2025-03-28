@@ -1,0 +1,13 @@
+{
+    "sites": [
+        {
+            "key": "kimivod",
+            "name": "KIMIVOD影视",
+            "type": 3,
+            "api": "https://raw.githubusercontent.com/catcouble/mo/refs/heads/main/7.js",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1
+        }
+    ]
+}
